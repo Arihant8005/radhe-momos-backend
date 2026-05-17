@@ -1,4 +1,6 @@
 require('dotenv').config(); // Loads your .env settings
+require('dns').setServers(['8.8.8.8', '1.1.1.1']); // 🚨 FIXES ETIMEOUT: Forces Node to use Google/Cloudflare DNS directly
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
