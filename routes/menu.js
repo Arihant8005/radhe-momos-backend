@@ -6,7 +6,7 @@ const fs = require('fs');
 const Menu = require('../models/Menu');
 const verifyToken = require('../middleware/authMiddleware');
 
-// 🚨 ABSOLUTE PATH FIX: Forces Render to locate the root uploads directory precisely
+// Absolute path layout to target root uploads folder precisely
 const uploadDir = path.join(__dirname, '../uploads');
 
 if (!fs.existsSync(uploadDir)) {
@@ -16,7 +16,7 @@ if (!fs.existsSync(uploadDir)) {
 // Configure where and how to save uploaded images
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, uploadDir); // Passes the clean absolute path
+    cb(null, uploadDir); 
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + path.extname(file.originalname));
@@ -30,6 +30,7 @@ router.get('/', async (req, res) => {
     const menuItems = await Menu.find();
     res.json(menuItems);
   } catch (error) {
+    console.error("🚨 Error fetching menu:", error); // Prints error to logs
     res.status(500).json({ message: 'Error fetching menu' });
   }
 });
@@ -49,7 +50,8 @@ router.post('/', verifyToken, upload.single('image'), async (req, res) => {
     const savedItem = await newItem.save();
     res.status(201).json(savedItem);
   } catch (error) {
-    res.status(500).json({ message: 'Error adding menu item' });
+    console.error("🚨 Error adding menu item:", error); // 🚨 NEW: This will print the exact database or code error to Render logs!
+    res.status(500).json({ message: 'Error adding menu item', details: error.message });
   }
 });
 
@@ -59,6 +61,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
     await Menu.findByIdAndDelete(req.params.id);
     res.json({ message: 'Menu item deleted successfully' });
   } catch (error) {
+    console.error("🚨 Error deleting menu item:", error); // Prints error to logs
     res.status(500).json({ message: 'Error deleting menu item' });
   }
 });
