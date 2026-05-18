@@ -7,7 +7,7 @@ function verifyToken(req, res, next) {
 
   try {
     // 2. Verify the token using your secret key
-    const verified = jwt.verify(token.replace("Bearer ", ""), 'MySuperSecretKey');
+    const verified = jwt.verify(token.replace("Bearer ", ""), process.env.JWT_SECRET);
     req.user = verified;
     next(); // ID is valid! Let them through to see the orders.
   } catch (error) {
