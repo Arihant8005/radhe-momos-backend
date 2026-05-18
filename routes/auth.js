@@ -41,7 +41,7 @@ router.post('/login', async (req, res) => {
 
     // C. Make the Digital ID Card (JWT)
     // Note: In a real company, 'MySuperSecretKey' is hidden in your .env file!
-    const token = jwt.sign({ id: admin._id }, 'MySuperSecretKey', { expiresIn: '2h' });
+    const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, { expiresIn: '2h' });
 
     res.json({ token: token, message: 'Login successful!' });
   } catch (error) {
