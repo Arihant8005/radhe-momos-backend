@@ -44,4 +44,20 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
+// DELETE /api/orders/:id - Mark an order as completed (removes from database)
+router.delete('/:id', verifyToken, async (req, res) => {
+  try {
+    const deletedOrder = await Order.findByIdAndDelete(req.params.id);
+    
+    if (!deletedOrder) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    
+    res.json({ message: 'Order completed and removed successfully!' });
+  } catch (error) {
+    console.error("🚨 Error deleting order:", error);
+    res.status(500).json({ message: "Failed to delete order" });
+  }
+});
+
 module.exports = router;
