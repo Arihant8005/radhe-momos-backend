@@ -1,27 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs'); 
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const Menu = require('../models/Menu');
 const verifyToken = require('../middleware/authMiddleware');
 
-// Absolute path layout to target root uploads folder precisely
-const uploadDir = path.join(__dirname, '../uploads');
+// 🔐 Configure Cloudinary with your secure environment credentials
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Configure where and how to save uploaded images
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir); 
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
+// 📦 Setup Cloudinary storage framework for Multer
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'radhe_momos_menu', // Creates a folder automatically inside your Cloudinary vault
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+    transformation: [{ width: 500, height: 500, crop: 'limit' }] // Automatically resizes images to keep things clean!
   }
 });
+
 const upload = multer({ storage: storage });
 
 // GET /api/menu - Get all momos
@@ -30,15 +31,15 @@ router.get('/', async (req, res) => {
     const menuItems = await Menu.find();
     res.json(menuItems);
   } catch (error) {
-    console.error("🚨 Error fetching menu:", error); // Prints error to logs
     res.status(500).json({ message: 'Error fetching menu' });
   }
 });
 
-// POST /api/menu - ADD a new Momo (Accepts an image file)
+// POST /api/menu - ADD a new Momo (Uploads directly to Cloudinary cloud)
 router.post('/', verifyToken, upload.single('image'), async (req, res) => {
   try {
-    const imageUrl = req.file ? `https://radhe-momos-backend.onrender.com/uploads/${req.file.filename}` : '';
+    // 🚨 CLOUD UPDATE: Multer-Storage-Cloudinary automatically gives us back a permanent cloud URL in req.file.path!
+    const imageUrl = req.file ? req.file.path : '';
 
     const newItem = new Menu({
       name: req.body.name,
@@ -50,7 +51,7 @@ router.post('/', verifyToken, upload.single('image'), async (req, res) => {
     const savedItem = await newItem.save();
     res.status(201).json(savedItem);
   } catch (error) {
-    console.error("🚨 Error adding menu item:", error); // 🚨 NEW: This will print the exact database or code error to Render logs!
+    console.error("🚨 Cloudinary Upload Error:", error);
     res.status(500).json({ message: 'Error adding menu item', details: error.message });
   }
 });
@@ -61,7 +62,6 @@ router.delete('/:id', verifyToken, async (req, res) => {
     await Menu.findByIdAndDelete(req.params.id);
     res.json({ message: 'Menu item deleted successfully' });
   } catch (error) {
-    console.error("🚨 Error deleting menu item:", error); // Prints error to logs
     res.status(500).json({ message: 'Error deleting menu item' });
   }
 });
