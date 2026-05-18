@@ -2,12 +2,13 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs'); // 🚨 NEW: Core Node module to interact with filesystems
+const fs = require('fs'); 
 const Menu = require('../models/Menu');
 const verifyToken = require('../middleware/authMiddleware');
 
-// 🚨 AUTOMATED FIX: Checks if the uploads folder exists on Render, and builds it if it's missing!
-const uploadDir = 'uploads/';
+// 🚨 ABSOLUTE PATH FIX: Forces Render to locate the root uploads directory precisely
+const uploadDir = path.join(__dirname, '../uploads');
+
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -15,7 +16,7 @@ if (!fs.existsSync(uploadDir)) {
 // Configure where and how to save uploaded images
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, uploadDir); 
+    cb(null, uploadDir); // Passes the clean absolute path
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + path.extname(file.originalname));
@@ -36,7 +37,6 @@ router.get('/', async (req, res) => {
 // POST /api/menu - ADD a new Momo (Accepts an image file)
 router.post('/', verifyToken, upload.single('image'), async (req, res) => {
   try {
-    // 🚨 CLOUD UPDATE: Swapped 'localhost:5000' for your real live Render domain layout
     const imageUrl = req.file ? `https://radhe-momos-backend.onrender.com/uploads/${req.file.filename}` : '';
 
     const newItem = new Menu({
