@@ -27,7 +27,8 @@ router.post('/', async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ message: 'Error placing order', error: error.message });
+    console.error("🚨 Order Processing Error:", error); // 🚨 ADD THIS LINE!
+    res.status(500).json({ message: 'Error processing order', details: error.message });
   }
 });
 
