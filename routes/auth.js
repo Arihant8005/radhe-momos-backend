@@ -4,33 +4,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken'); 
 const Admin = require('../models/Admin');
 
-// 🚨 TEMPORARY ROUTE: We will delete this after the password changes!
-router.get('/setup', async (req, res) => {
-  try {
-    // 👇 PUT THE SHOP OWNER'S NEW PASSWORD HERE 👇
-    const newPassword = 'Arihant@123'; 
-
-    // Scramble the new password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-
-    // Find the 'owner' account and overwrite the password
-    const updatedAdmin = await Admin.findOneAndUpdate(
-      { username: 'owner' }, 
-      { password: hashedPassword },
-      { new: true } 
-    );
-
-    if (!updatedAdmin) {
-       return res.send('❌ Could not find an account named owner! Did you create it yet?');
-    }
-
-    res.send('✅ Admin password successfully updated in the live database!');
-  } catch (error) {
-    res.status(500).send('Error updating password');
-  }
-});
-
 // THE BOUNCER: The route your React frontend will use to log in
 router.post('/login', async (req, res) => {
   try {
