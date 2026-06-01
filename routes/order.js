@@ -1,25 +1,31 @@
 const verifyToken = require('../middleware/authMiddleware');
 const express = require('express');
 const router = express.Router();
-const Order = require('../models/order'); // Connects to your order model
+const Order = require('../models/order'); 
 
-// POST /api/orders - This saves a new order when a customer checks out
+// POST /api/orders - Saves a new order
 router.post('/', async (req, res) => {
   try {
     const { customerName, phoneNumber, deliveryAddress, items, totalPrice } = req.body;
 
-    // Create the order in the database
     const newOrder = new Order({
       customerName,
       phoneNumber,
       deliveryAddress,
       items,
       totalPrice,
-      paymentStatus: 'Paid', // We will mock a successful Google Pay/PhonePe transaction for now
-      paymentId: `UPI_TXN_${Math.floor(Math.random() * 100000000)}` // Generates a fake transaction ID
+      paymentStatus: 'Paid', 
+      paymentId: `UPI_TXN_${Math.floor(Math.random() * 100000000)}` 
     });
 
     const savedOrder = await newOrder.save();
+
+    // 👇 SOCKET.IO MAGIC: Shout to the Admin that a new order arrived! 👇
+    const io = req.app.get('socketio');
+    if (io) {
+      io.emit('newOrderPlaced', savedOrder); 
+    }
+    // 👆 END MAGIC 👆
 
     res.status(201).json({
       message: 'Order placed successfully!',
@@ -27,15 +33,14 @@ router.post('/', async (req, res) => {
     });
 
   } catch (error) {
-    console.error("🚨 Order Processing Error:", error); // 🚨 ADD THIS LINE!
+    console.error("🚨 Order Processing Error:", error); 
     res.status(500).json({ message: 'Error processing order', details: error.message });
   }
 });
 
-// GET /api/orders - Fetch all orders for the Admin Dashboard
+// GET /api/orders - Fetch all orders for Admin
 router.get('/', verifyToken, async (req, res) => {
   try {
-    // Find all orders and sort them by the newest first (-1 means descending)
     const orders = await Order.find().sort({ createdAt: -1 });
     res.json(orders);
   } catch (error) {
@@ -44,14 +49,39 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-// DELETE /api/orders/:id - Mark an order as completed (removes from database)
+// 👇 BRAND NEW ROUTE: Update order status (Pending -> Cooking -> Delivered) 👇
+router.put('/status/:id', verifyToken, async (req, res) => {
+  try {
+    const { status } = req.body; // e.g., "Cooking", "Out for Delivery"
+    
+    const updatedOrder = await Order.findByIdAndUpdate(
+      req.params.id, 
+      { status: status }, 
+      { new: true }
+    );
+
+    if (!updatedOrder) return res.status(404).json({ message: 'Order not found' });
+
+    // 🚨 SOCKET.IO MAGIC: Shout to the Customer that their order moved! 🚨
+    const io = req.app.get('socketio');
+    if (io) {
+      io.emit('orderStatusUpdated', updatedOrder); 
+    }
+
+    res.json(updatedOrder);
+  } catch (error) {
+    console.error("🚨 Error updating order:", error);
+    res.status(500).json({ message: "Failed to update order status" });
+  }
+});
+// 👆 END BRAND NEW ROUTE 👆
+
+
+// DELETE /api/orders/:id - Mark as completed
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
     const deletedOrder = await Order.findByIdAndDelete(req.params.id);
-    
-    if (!deletedOrder) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
+    if (!deletedOrder) return res.status(404).json({ message: 'Order not found' });
     
     res.json({ message: 'Order completed and removed successfully!' });
   } catch (error) {
@@ -61,4 +91,3 @@ router.delete('/:id', verifyToken, async (req, res) => {
 });
 
 module.exports = router;
-// Forcing Git to update the server!
