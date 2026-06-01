@@ -52,12 +52,13 @@ router.get('/', verifyToken, async (req, res) => {
 // 👇 BRAND NEW ROUTE: Update order status (Pending -> Cooking -> Delivered) 👇
 router.put('/status/:id', verifyToken, async (req, res) => {
   try {
-    const { status } = req.body; // e.g., "Cooking", "Out for Delivery"
+    const { status } = req.body; 
     
+    // 👇 THIS IS THE FIX: Tell MongoDB to return the newly updated data! 👇
     const updatedOrder = await Order.findByIdAndUpdate(
       req.params.id, 
       { status: status }, 
-      { new: true }
+      { returnDocument: 'after' } 
     );
 
     if (!updatedOrder) return res.status(404).json({ message: 'Order not found' });
@@ -75,7 +76,6 @@ router.put('/status/:id', verifyToken, async (req, res) => {
   }
 });
 // 👆 END BRAND NEW ROUTE 👆
-
 
 // DELETE /api/orders/:id - Mark as completed
 router.delete('/:id', verifyToken, async (req, res) => {
