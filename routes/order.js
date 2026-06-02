@@ -83,6 +83,10 @@ router.delete('/:id', verifyToken, async (req, res) => {
     const deletedOrder = await Order.findByIdAndDelete(req.params.id);
     if (!deletedOrder) return res.status(404).json({ message: 'Order not found' });
     
+    const io = req.app.get('socketio');
+    if (io) {
+      io.emit('orderStatusUpdated', { _id: req.params.id, status: 'Delivered' }); 
+    }
     res.json({ message: 'Order completed and removed successfully!' });
   } catch (error) {
     console.error("🚨 Error deleting order:", error);
