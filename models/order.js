@@ -41,6 +41,7 @@ const orderSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  status: { type: String, default: 'Pending' },
 
   // 3. Payment & Delivery Status
   paymentStatus: {
